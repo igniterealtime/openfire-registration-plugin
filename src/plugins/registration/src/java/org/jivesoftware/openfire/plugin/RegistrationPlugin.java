@@ -5,18 +5,18 @@
  * a copy of which is included in this distribution.
  */
 
-package org.jivesoftware.wildfire.plugin;
+package org.jivesoftware.openfire.plugin;
 
-import org.jivesoftware.wildfire.MessageRouter;
-import org.jivesoftware.wildfire.XMPPServer;
-import org.jivesoftware.wildfire.container.Plugin;
-import org.jivesoftware.wildfire.container.PluginManager;
-import org.jivesoftware.wildfire.event.UserEventDispatcher;
-import org.jivesoftware.wildfire.event.UserEventListener;
-import org.jivesoftware.wildfire.group.Group;
-import org.jivesoftware.wildfire.group.GroupManager;
-import org.jivesoftware.wildfire.group.GroupNotFoundException;
-import org.jivesoftware.wildfire.user.User;
+import org.jivesoftware.openfire.MessageRouter;
+import org.jivesoftware.openfire.XMPPServer;
+import org.jivesoftware.openfire.container.Plugin;
+import org.jivesoftware.openfire.container.PluginManager;
+import org.jivesoftware.openfire.event.UserEventDispatcher;
+import org.jivesoftware.openfire.event.UserEventListener;
+import org.jivesoftware.openfire.group.Group;
+import org.jivesoftware.openfire.group.GroupManager;
+import org.jivesoftware.openfire.group.GroupNotFoundException;
+import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.admin.AuthCheckFilter;
 import org.jivesoftware.util.EmailService;
 import org.jivesoftware.util.JiveGlobals;
