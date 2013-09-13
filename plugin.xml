@@ -5,18 +5,17 @@
     <name>Registration</name>
     <description>Performs various actions whenever a new user account is created.</description>
     <author>Ryan Graham</author>
-    <version>${project.version}</version>
-    <date>tbc.</date>
-    <minServerVersion>4.0.0</minServerVersion>
-    <minJavaVersion>1.8</minJavaVersion>
-
-    <adminconsole>
-        <tab id="tab-users">
-            <sidebar id="sidebar-users">
-                <item id="registration-props-form" name="Registration Properties"
-                        url="registration-props-form.jsp"
-                        description="User Registration" />
-            </sidebar>
+    <version>1.6.0</version>
+    <date>09/13/2013</date>
+    <minServerVersion>3.9.0</minServerVersion>
+	
+	<adminconsole>
+		<tab id="tab-users">
+			<sidebar id="sidebar-users">
+				<item id="registration-props-form" name="Registration Properties"
+						url="registration-props-form.jsp"
+						description="User Registration" />
+			</sidebar>
         </tab>
     </adminconsole>
 </plugin>
