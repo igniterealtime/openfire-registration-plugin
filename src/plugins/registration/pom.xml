@@ -11,7 +11,7 @@
     <name>Registration Plugin</name>
 
     <build>
-        <sourceDirectory>../../src/plugins/registration/src/java</sourceDirectory>
+        <sourceDirectory>src/java</sourceDirectory>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
