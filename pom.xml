@@ -4,7 +4,7 @@
     <parent>
         <artifactId>plugins</artifactId>
         <groupId>org.igniterealtime.openfire</groupId>
-        <version>4.3.0-beta</version>
+        <version>4.3.0</version>
     </parent>
     <groupId>org.igniterealtime.openfire.plugins</groupId>
     <artifactId>registration</artifactId>
@@ -32,5 +32,23 @@
             <version>0.0.7</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <!-- Here, we get our dependencies, like the parent project. -->
+        <repository>
+            <id>igniterealtime</id>
+            <name>Ignite Realtime Repository</name>
+            <url>https://igniterealtime.org/archiva/repository/maven/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <!-- Used for the dependencies used by the plugins that we'll use. -->
+        <pluginRepository>
+            <id>igniterealtime</id>
+            <name>Ignite Realtime Repository</name>
+            <url>https://igniterealtime.org/archiva/repository/maven/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
 </project>
