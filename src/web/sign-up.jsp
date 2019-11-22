@@ -24,6 +24,7 @@
 %>
 
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <html>
@@ -120,6 +121,11 @@
             }
         }
     }
+
+    session.setAttribute("headerText", plugin.getHeader());
+    session.setAttribute("username", username);
+    session.setAttribute("name", name);
+    session.setAttribute("email", email);
 %>
 
 <body>
@@ -127,7 +133,7 @@
 <div id="jive-header">
 <table cellpadding="0" cellspacing="0" width="100%" border="0">
     <tbody>
-        <tr><td class="drop-shadow">&nbsp;<%=plugin.getHeader() %></td></tr>    
+        <tr><td class="drop-shadow">&nbsp;<c:out value="${headerText}"/></td></tr>
     </tbody>
 </table>
 </div>
@@ -205,8 +211,7 @@
     <tr>
         <td width="1%" nowrap><label for="usernametf"><fmt:message key="registration.sign.up.username" />:</label> *</td>
         <td width="99%">
-            <input type="text" name="username" size="30" maxlength="75" value="<%= ((username!=null) ? username : "") %>"
-             id="usernametf" autocomplete="off">
+            <input type="text" name="username" size="30" maxlength="75" value="${fn:escapeXml(username)}" id="usernametf" autocomplete="off">
         </td>
     </tr>
     <tr>
@@ -214,16 +219,14 @@
             <label for="nametf"><fmt:message key="registration.sign.up.name" />:</label>
         </td>
         <td width="99%">
-            <input type="text" name="name" size="30" maxlength="75" value="<%= ((name!=null) ? name : "") %>"
-             id="nametf">
+            <input type="text" name="name" size="30" maxlength="75" value="${fn:escapeXml(name)}" id="nametf">
         </td>
     </tr>
     <tr>
         <td width="1%" nowrap>
             <label for="emailtf"><fmt:message key="registration.sign.up.email" />:</label></td>
         <td width="99%">
-            <input type="text" name="email" size="30" maxlength="75" value="<%= ((email!=null) ? email : "") %>"
-             id="emailtf">
+            <input type="text" name="email" size="30" maxlength="75" value="${fn:escapeXml(email)}" id="emailtf">
         </td>
     </tr>
     <tr>
@@ -231,8 +234,7 @@
             <label for="passtf"><fmt:message key="registration.sign.up.password" />:</label> *
         </td>
         <td width="99%">
-            <input type="password" name="password" value="" size="20" maxlength="75"
-             id="passtf">
+            <input type="password" name="password" value="" size="20" maxlength="75" id="passtf">
         </td>
     </tr>
     <tr>
@@ -240,8 +242,7 @@
             <label for="confpasstf"><fmt:message key="registration.sign.up.confirm_password" />:</label> *
         </td>
         <td width="99%">
-            <input type="password" name="passwordConfirm" value="" size="20" maxlength="75"
-             id="confpasstf">
+            <input type="password" name="passwordConfirm" value="" size="20" maxlength="75" id="confpasstf">
         </td>
     </tr>
     </tbody>

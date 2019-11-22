@@ -24,8 +24,10 @@
    errorPage="error.jsp"%>
 <%@ page import="org.xmpp.packet.JID" %>
 <%@ page import="org.jivesoftware.openfire.lockout.LockOutManager" %>
+<%@ page import="java.net.URLEncoder" %>
 
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
 
 <%
@@ -244,6 +246,16 @@
     reCaptchaPublicKey = plugin.getReCaptchaPublicKey();
     reCaptchaPrivateKey = plugin.getReCaptchaPrivateKey();
     autoExpiry = plugin.getAutomaticAccountLockoutAfter();
+
+    pageContext.setAttribute("webRegistrationAddress", plugin.webRegistrationAddress());
+    pageContext.setAttribute("reCaptchaPublicKey", reCaptchaPublicKey);
+    pageContext.setAttribute("reCaptchaPrivateKey", reCaptchaPrivateKey);
+    pageContext.setAttribute("contactEmail", contactEmail);
+    pageContext.setAttribute("welcomeMessage", welcomeMessage);
+    pageContext.setAttribute("group", group);
+    pageContext.setAttribute("privacyListName", privacyListName);
+    pageContext.setAttribute("privacyList", privacyList);
+    pageContext.setAttribute("headerText", header);
 %>
 
 <html>
@@ -274,7 +286,7 @@ function addEmailContact() {
 <div class="jive-contentBoxHeader"><fmt:message key="registration.props.form.registration_settings" /></div>
 <div class="jive-contentBox">
     <p><fmt:message key="registration.props.form.enable_features" /></p>
-   
+
     <% if (ParamUtils.getBooleanParameter(request, "settingsSaved")) { %>
    
     <div class="jive-success">
@@ -344,11 +356,11 @@ function addEmailContact() {
         </tr>
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="webenabled" <%=(webEnabled) ? "checked" : "" %>></td>
-            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_web_registration" /> <%=plugin.webRegistrationAddress() %></td>
+            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_web_registration" /> <c:out value="${webRegistrationAddress}"/></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="recaptcha" <%=(reCaptchaEnabled) ? "checked" : "" %>></td>
-            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_recaptcha" /> <%=plugin.webRegistrationAddress() %></td>
+            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_recaptcha" /> <c:out value="${webRegistrationAddress}"/></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="recaptchanoscript" <%=(reCaptchaNoScript) ? "checked" : "" %>></td>
@@ -357,12 +369,12 @@ function addEmailContact() {
         <tr>
             <td width="1%" align="center" nowrap>&nbsp;</td>
             <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_public_key" /></td>
-            <td width="75%" align="left"><input type="text" name="recaptchapublickey" size="40" maxlength="100" value="<%= (reCaptchaPublicKey != null ? reCaptchaPublicKey : "") %>"/></td>
+            <td width="75%" align="left"><input type="text" name="recaptchapublickey" size="40" maxlength="100" value="${fn:escapeXml(reCaptchaPublicKey)}"/></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap>&nbsp;</td>
             <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_private_key" /></td>
-            <td width="75%" align="left"><input type="text" name="recaptchaprivatekey" size="40" maxlength="100" value="<%= (reCaptchaPrivateKey != null ? reCaptchaPrivateKey : "") %>"/></td>
+            <td width="75%" align="left"><input type="text" name="recaptchaprivatekey" size="40" maxlength="100" value="${fn:escapeXml(reCaptchaPrivateKey)}"/></td>
         </tr>
 
         <% if ( LockOutManager.getLockOutProvider().isDelayedStartSupported()) { %>
@@ -519,7 +531,7 @@ function addEmailContact() {
     <tr>
         <td width="99%"><%=imContact %></td>
         <td width="1%" align="center"><a
-                       href="registration-props-form.jsp?deleteIM=true&contactIM=<%=imContact %>"
+                       href="registration-props-form.jsp?deleteIM=true&contactIM=<%=URLEncoder.encode(imContact) %>"
                        title="Delete Contact?"
                        onclick="return confirm('Are you sure you want to delete this contact?');"><img
                        src="images/delete-16x16.gif" width="16" height="16"
@@ -535,7 +547,7 @@ function addEmailContact() {
    
     <div>
     <label for="emailtf"><fmt:message key="registration.props.form.registration_add_email" />:</label>
-    <input type="text" name="contactEmail" size="30" maxlength="100" value="<%= (contactEmail != null ? contactEmail : "") %>" id="emailtf"/>
+    <input type="text" name="contactEmail" size="30" maxlength="100" value="${fn:escapeXml(contactEmail)}" id="emailtf"/>
     <input type="submit" value="<fmt:message key="registration.props.form.registration_add" />" onclick="return addEmailContact();"/>
    
     <br><br>
@@ -562,7 +574,7 @@ function addEmailContact() {
     <tr>
         <td width="99%"><%=emailContact %></td>
         <td width="1%" align="center"><a
-                       href="registration-props-form.jsp?deleteEmail=true&contactEmail=<%=emailContact %>"
+                       href="registration-props-form.jsp?deleteEmail=true&contactEmail=<%=URLEncoder.encode(emailContact)%>"
                        title="Delete Contact?"
                        onclick="return confirm('Are you sure you want to delete this contact?');"><img
                        src="images/delete-16x16.gif" width="16" height="16"
@@ -604,7 +616,7 @@ function addEmailContact() {
     <tbody>
         <tr>
             <td width="5%" valign="top">Message:&nbsp;</td>
-            <td width="95%"><textarea cols="45" rows="5" wrap="virtual" name="welcomemessage"><%= welcomeMessage %></textarea></td>
+            <td width="95%"><textarea cols="45" rows="5" wrap="virtual" name="welcomemessage"><c:out value="${welcomeMessage}"/></textarea></td>
             <% if (errors.containsKey("missingWelcomeMessage")) { %>
             <span class="jive-error-text"><br><fmt:message key="registration.props.form.welcome_message_missing" /></span>
             <% } %>            
@@ -642,7 +654,7 @@ function addEmailContact() {
     <table cellpadding="3" cellspacing="0" border="0" width="100%">
     <tbody>
         <tr>
-            <td>Default Group:&nbsp;<input type="text" name="groupname" size="30" maxlength="100" value="<%= (group != null ? group : "") %>"/>
+            <td>Default Group:&nbsp;<input type="text" name="groupname" size="30" maxlength="100" value="${fn:escapeXml(group)}"/>
             <% if (errors.containsKey("groupNotFound")) { %> 
             <span class="jive-error-text"><br><fmt:message key="registration.props.form.default_group_invalid" /></span>
             <% } %>
@@ -681,7 +693,7 @@ function addEmailContact() {
     <tbody>
         <tr>            
             <td width="15%" valign="top">Default Privacy List Name:</td>
-            <td width="85%"><input type="text" name="privacylistname" size="30" maxlength="100" value="<%= (privacyListName != null ? privacyListName : "") %>"/>
+            <td width="85%"><input type="text" name="privacylistname" size="30" maxlength="100" value="${fn:escapeXml(privacyListName)}"/>
             <% if (errors.containsKey("invalidPrivacyListName")) { %> 
             <span class="jive-error-text"><br><fmt:message key="registration.props.form.privacy_list_name_invalid" /></span>
             <% } %>  
@@ -689,7 +701,7 @@ function addEmailContact() {
         </tr>  
         <tr>              
             <td width="15%" valign="top">Default Privacy List:</td>
-            <td width="85%"><textarea cols="45" rows="5" wrap="virtual" name="privacylist"><%= (privacyList != null ? privacyList : "") %></textarea>
+            <td width="85%"><textarea cols="45" rows="5" wrap="virtual" name="privacylist"><c:out value="${privacyList}"/></textarea>
             <% if (errors.containsKey("invalidPrivacyList")) { %> 
             <span class="jive-error-text"><br><fmt:message key="registration.props.form.privacy_list_invalid" /></span>
             <% } %>
@@ -728,7 +740,7 @@ function addEmailContact() {
     <table cellpadding="3" cellspacing="0" border="0" width="100%">
     <tbody>
         <tr>
-            <td>Header Text:&nbsp;<input type="text" name="header" size="30" maxlength="100" value="<%=header %>"/></td>
+            <td>Header Text:&nbsp;<input type="text" name="header" size="30" maxlength="100" value="${fn:escapeXml(headerText)}"/></td>
             <% if (errors.containsKey("missingHeader")) { %>
             <span class="jive-error-text"><br><fmt:message key="registration.props.form.sign_up_missing" /></span>
             <% } %>
