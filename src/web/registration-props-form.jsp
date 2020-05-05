@@ -58,6 +58,8 @@
     boolean deleteEmail = ParamUtils.getBooleanParameter(request, "deleteEmail");
 
     String welcomeMessage = ParamUtils.getParameter(request, "welcomemessage");
+    String welcomeRawMessage = ParamUtils.getParameter(request, "welcomerawmessage");
+    String welcomeMessageFrom = ParamUtils.getParameter(request, "welcomemessagefrom");
     String group = ParamUtils.getParameter(request, "groupname");
 
     String header = ParamUtils.getParameter(request, "header");
@@ -170,11 +172,17 @@
     }
     
     if (saveWelcome) {
-        if (welcomeMessage == null || welcomeMessage.trim().length() < 1) {
+        boolean hasWelcomeMessage = welcomeMessage != null && welcomeMessage.trim().length() > 0;
+        boolean hasWelcomeRawMessage = welcomeRawMessage != null && welcomeRawMessage.trim().length() > 0;
+        plugin.setWelcomeMessageFrom(welcomeMessageFrom);
+        if (!hasWelcomeMessage && !hasWelcomeRawMessage) {
             errors.put("missingWelcomeMessage", "missingWelcomeMessage");
         }
         else {
-            plugin.setWelcomeMessage(welcomeMessage);
+            if (hasWelcomeMessage) {
+                plugin.setWelcomeMessage(welcomeMessage);
+            }
+            plugin.setWelcomeRawMessage(welcomeRawMessage);
             response.sendRedirect("registration-props-form.jsp?welcomeSaved=true");
             return;
         }
@@ -235,6 +243,8 @@
     privacyListEnabled = plugin.privacyListEnabled();
     
     welcomeMessage = plugin.getWelcomeMessage();
+    welcomeRawMessage = plugin.getWelcomeRawMessage() != null ? plugin.getWelcomeRawMessage() : "";
+    welcomeMessageFrom = plugin.getWelcomeMessageFrom();
     group = plugin.getGroup();
     header = plugin.getHeader();
     privacyListName = plugin.getPrivacyListName();
@@ -605,9 +615,14 @@ function addEmailContact() {
         <tr>
             <td width="5%" valign="top">Message:&nbsp;</td>
             <td width="95%"><textarea cols="45" rows="5" wrap="virtual" name="welcomemessage"><%= welcomeMessage %></textarea></td>
-            <% if (errors.containsKey("missingWelcomeMessage")) { %>
-            <span class="jive-error-text"><br><fmt:message key="registration.props.form.welcome_message_missing" /></span>
-            <% } %>            
+        </tr>
+        <tr>
+            <td width="15%" valign="top">Message from:&nbsp;</td>
+            <td width="85%"><textarea cols="45" rows="1" wrap="virtual" name="welcomemessagefrom"><%= welcomeMessageFrom %></textarea></td>
+        </tr>
+        <tr>
+            <td width="15%" valign="top">Raw XMPP message:&nbsp;</td>
+            <td width="85%"><textarea cols="45" rows="5" name="welcomerawmessage"><%= welcomeRawMessage %></textarea></td>
         </tr>
     </tbody>
     </table>
