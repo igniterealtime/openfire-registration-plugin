@@ -491,14 +491,14 @@ public class RegistrationPlugin implements Plugin {
 
         private void sendWelcomeMessage(User user) throws DocumentException {
             String rawWelcomeMessage = getWelcomeRawMessage();
-            Message welcomeXmppMessage;
+            List<Message> welcomeMessages = new ArrayList();
             String to = user.getUsername() + "@" + serverName;
             if (rawWelcomeMessage != null && !rawWelcomeMessage.isEmpty()) {
-                welcomeXmppMessage = createServerMessage(to, rawWelcomeMessage);
+                welcomeMessages = createServerMessage(to, rawWelcomeMessage);
             } else {
-                welcomeXmppMessage = createServerMessage(to, "Welcome", getWelcomeMessage());
+                welcomeMessages.add(createServerMessage(to, "Welcome", getWelcomeMessage()));
             }
-            router.route(welcomeXmppMessage);
+            welcomeMessages.forEach(router::route);
         }
         
         private Message createServerMessage(String to, String subject, String body) {
@@ -512,11 +512,26 @@ public class RegistrationPlugin implements Plugin {
             return message;
         }
 
-        private Message createServerMessage(String to, String rawMessage) throws DocumentException {
+        private List<Message> createServerMessage(String to, String rawMessage) throws DocumentException {
             Document document = DocumentHelper.parseText(rawMessage);
-            Message message = new Message(document.getRootElement());
-            message.setTo(to);
+            // It could be a single message or an array of messages
+            // An array of messages has "messages" as a root element
+            List<Message> messages = new ArrayList();
             JID from = getWelcomeMessageFrom() != null ? new JID(getWelcomeMessageFrom()) : serverAddress;
+            if (document.getRootElement().getName().equals("messages")) {
+                for (Iterator i = document.getRootElement().elementIterator(); i.hasNext();) {
+                    Element element = (Element) i.next();
+                    messages.add(messageFromElement(element, to, from));
+                }
+            } else {
+                messages.add(messageFromElement(document.getRootElement(), to, from));
+            }
+            return messages;
+        }
+
+        private Message messageFromElement(Element element, String to, JID from) {
+            Message message = new Message(element);
+            message.setTo(to);
             message.setFrom(from);
             return message;
         }
