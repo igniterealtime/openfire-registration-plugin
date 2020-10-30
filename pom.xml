@@ -16,17 +16,6 @@
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
-    <pluginRepositories>
-        <!-- Typically used to retrieve Maven plugins used by this project from. This
-             apparently is also used to obtain the dependencies _used by_ plugins
-             (eg: openfire-plugin-assembly-descriptor) -->
-        <pluginRepository>
-            <id>igniterealtime</id>
-            <name>Ignite Realtime Repository</name>
-            <url>https://igniterealtime.org/archiva/repository/maven/</url>
-        </pluginRepository>
-    </pluginRepositories>
-
     <build>
         <sourceDirectory>src/java</sourceDirectory>
         <plugins>
