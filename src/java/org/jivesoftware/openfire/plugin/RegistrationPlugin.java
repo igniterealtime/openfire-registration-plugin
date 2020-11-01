@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.xmpp.packet.JID;
 import org.xmpp.packet.Message;
 
-
 /**
  * Registration plugin.
  *
