@@ -6,7 +6,7 @@
     <description>Performs various actions whenever a new user account is created.</description>
     <author>Ryan Graham</author>
     <version>${project.version}</version>
-    <date>11/12/2020</date>
+    <date>02/05/2021</date>
     <minServerVersion>4.0.0</minServerVersion>
     <minJavaVersion>1.8</minJavaVersion>
 

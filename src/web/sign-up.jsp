@@ -19,9 +19,9 @@
                  org.jivesoftware.util.*,
                  gnu.inet.encoding.Stringprep,
                  gnu.inet.encoding.StringprepException,
-                 org.xmpp.packet.JID,
-                 net.tanesha.recaptcha.*"
+                 org.xmpp.packet.JID"
 %>
+<%@ page import="org.jivesoftware.openfire.plugin.ReCaptchaUtil" %>
 
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
@@ -35,9 +35,11 @@
         .drop-shadow {
              font-weight: bold;
              font-size: 14pt;
-             color: white;
+             color: #EEEEEE;
              text-shadow: black 0.1em 0.1em 0.2em;
-             padding-top: 21px;}
+             padding-top: 21px;
+             padding-bottom: 1em;
+        }
     </style>
     <meta name="decorator" content="none"/>
 </head>
@@ -52,17 +54,9 @@
     String email = ParamUtils.getParameter(request,"email");
     String password = ParamUtils.getParameter(request,"password");
     String passwordConfirm = ParamUtils.getParameter(request,"passwordConfirm");
-    String reCaptchaChallenge = ParamUtils.getParameter(request,"recaptcha_challenge_field");
-    String reCaptchaResponse = ParamUtils.getParameter(request,"recaptcha_response_field");
+    String recaptchaResponse = ParamUtils.getParameter(request,"g-recaptcha-response");
 
     RegistrationPlugin plugin = (RegistrationPlugin) webManager.getXMPPServer().getPluginManager().getPlugin("registration");
-    ReCaptcha reCaptcha = null;
-    if (plugin.reCaptchaEnabled()) {
-        reCaptcha = ReCaptchaFactory.newSecureReCaptcha(
-                plugin.getReCaptchaPublicKey(),
-                plugin.getReCaptchaPrivateKey(),
-                plugin.reCaptchaNoScript());
-    }
 
     // Handle a request to create a user:
     if (create) {
@@ -89,17 +83,8 @@
         if (password != null && passwordConfirm != null && !password.equals(passwordConfirm)) {
             errors.put("passwordMatch","");
         }
-        if (plugin.reCaptchaEnabled()) {
-            ReCaptchaResponse captchaResponse = null;
-            try {
-                captchaResponse = reCaptcha.checkAnswer(
-                        request.getRemoteAddr(),
-                        reCaptchaChallenge,
-                        reCaptchaResponse);
-            }
-            catch (Exception e) {
-            }
-            if (captchaResponse == null || !captchaResponse.isValid()) {
+        if (ReCaptchaUtil.reCaptchaEnabled()) {
+            if ( !ReCaptchaUtil.verify(recaptchaResponse, request.getRemoteAddr() ) ) {
                 errors.put("reCaptchaFail","");
             }
         }
@@ -201,7 +186,7 @@
 
 <%  } %>
 
-<form name="f" action="sign-up.jsp" method="get">
+<form id="signup" name="f" action="sign-up.jsp" method="get">
 
 <div class="jive-contentBoxHeader"><fmt:message key="registration.sign.up.create_account" /></div>
 <div class="jive-contentBox">
@@ -254,14 +239,24 @@
     </div>
 </div>
 
-<%  if (reCaptcha != null) { %>
-<%= reCaptcha.createRecaptchaHtml(null, null, 0) %>
-<%  } %>
-<input type="submit" name="create" value="<fmt:message key="registration.sign.up.create_account" />">
+<% if (ReCaptchaUtil.reCaptchaEnabled()) { %>
+    <button class="g-recaptcha" data-sitekey="<%=StringUtils.escapeHTMLTags(ReCaptchaUtil.getReCaptchaSiteKey())%>" data-callback='onSubmit' data-action='submit'><fmt:message key="registration.sign.up.create_account" /></button>
+<% } else { %>
+    <button data-callback='onSubmit' data-action='submit'><fmt:message key="registration.sign.up.create_account" /></button>
+<% } %>
 
+    <input type="hidden" name="create" value="true"/>
 </form>
 
-<script language="JavaScript" type="text/javascript">
+<%  if (ReCaptchaUtil.reCaptchaEnabled()) { %>
+<script src="https://www.google.com/recaptcha/api.js"></script>
+<%  } %>
+
+<script>
+function onSubmit(token) {
+    document.getElementById("signup").submit();
+}
+
 document.f.username.focus();
 </script>
 
