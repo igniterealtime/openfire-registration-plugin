@@ -150,7 +150,7 @@
             <% } else if (errors.get("username") != null) { %>
                 <fmt:message key="registration.sign.up.invalid_username" />
             <% } else if (errors.get("usernameAlreadyExists") != null) { %>
-                <fmt:message key="registration.sign.up.user_exist" />
+                <fmt:message key="registration.sign.up.create.user_exist" />
             <% } else if (errors.get("name") != null) { %>
                 <fmt:message key="registration.sign.up.invalid_name" />
             <% } else if (errors.get("email") != null) { %>
