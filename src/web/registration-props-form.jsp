@@ -43,6 +43,7 @@
     boolean welcomeEnabled = ParamUtils.getBooleanParameter(request, "welcomeenabled", false);
     boolean groupEnabled = ParamUtils.getBooleanParameter(request, "groupenabled", false);
     boolean webEnabled = ParamUtils.getBooleanParameter(request, "webenabled", false);
+	boolean initialContactsEnabled = ParamUtils.getBooleanParameter(request, "initialcontactsenabled", false);
 
     boolean reCaptchaEnabled = ParamUtils.getBooleanParameter(request, "recaptcha", false);
     double reCaptchaMinimalScore = ParamUtils.getDoubleParameter(request, "recaptchaminimalscore", ReCaptchaUtil.getReCaptchaMinimalScore());
@@ -59,6 +60,10 @@
     String contactEmail = ParamUtils.getParameter(request, "contactEmail");
     boolean addEmail = ParamUtils.getBooleanParameter(request, "addEmail");
     boolean deleteEmail = ParamUtils.getBooleanParameter(request, "deleteEmail");
+
+    String contactInitial = ParamUtils.getParameter(request, "contactInitial");
+    boolean addInitialContact = ParamUtils.getBooleanParameter(request, "addInitialContact");
+    boolean deleteInitialContact = ParamUtils.getBooleanParameter(request, "deleteInitialContact");
 
     String welcomeMessage = ParamUtils.getParameter(request, "welcomemessage");
     String group = ParamUtils.getParameter(request, "groupname");
@@ -126,12 +131,32 @@
         response.sendRedirect("registration-props-form.jsp?deleteSuccess=true");
         return;
     }
-    
+
+    if (addInitialContact) {
+		if (contactInitial == null || contactInitial.trim().equals("")) {
+            errors.put("missingInitialContact", "missingInitialContact");
+        }
+        else {
+            contactInitial = contactInitial.trim().toLowerCase();
+            plugin.addInitialContact(contactInitial);
+            response.sendRedirect("registration-props-form.jsp?addInitialContactSuccess=true");
+            return;
+        }
+    }
+
+    if (deleteInitialContact) {
+        plugin.removeInitialContact(contactInitial);
+        response.sendRedirect("registration-props-form.jsp?deleteInitialContactSuccess=true");
+        return;
+    }
+
     if (save) {
         plugin.setIMNotificationEnabled(imEnabled);
         plugin.setEmailNotificationEnabled(emailEnabled);
         plugin.setWelcomeEnabled(welcomeEnabled);
         plugin.setWebEnabled(webEnabled);
+        plugin.setInitialContactsEnabled(initialContactsEnabled);
+
         ReCaptchaUtil.setReCaptchaEnabled(reCaptchaEnabled);
         ReCaptchaUtil.setReCaptchaMinimalScore(reCaptchaMinimalScore);
         ReCaptchaUtil.setReCaptchaSiteKey(reCaptchaSiteKey);
@@ -235,6 +260,7 @@
     welcomeEnabled = plugin.welcomeEnabled();
     groupEnabled = plugin.groupEnabled();
     webEnabled = plugin.webEnabled();
+    initialContactsEnabled = plugin.initialContactsEnabled();
     privacyListEnabled = plugin.privacyListEnabled();
     
     welcomeMessage = plugin.getWelcomeMessage();
@@ -264,26 +290,27 @@
     <head>
         <title><fmt:message key="registration.props.form.title" /></title>
         <meta name="pageID" content="registration-props-form"/>
+
+        <script>
+            function addIMContact() {
+                document.regform.addIM.value = 'true';
+                document.regform.submit();
+            }
+
+            function addEmailContact() {
+                document.regform.addEmail.value = 'true';
+                document.regform.submit();
+            }
+        </script>
     </head>
     <body>
-
-<script language="JavaScript" type="text/javascript">
-function addIMContact() {
-    document.regform.addIM.value = 'true';
-    document.regform.submit();
-}
-
-function addEmailContact() {
-    document.regform.addEmail.value = 'true';
-    document.regform.submit();
-}
-</script>
 
 <p><fmt:message key="registration.props.form.details" /></p>
 
 <form action="registration-props-form.jsp?save" name="regform" method="post">
 <input type="hidden" name="addIM" value="">
 <input type="hidden" name="addEmail" value="">
+<input type="hidden" name="addInitialContact" value="">
 
 <div class="jive-contentBoxHeader"><fmt:message key="registration.props.form.registration_settings" /></div>
 <div class="jive-contentBox">
@@ -365,6 +392,10 @@ function addEmailContact() {
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="groupenabled" <%=(groupEnabled) ? "checked" : "" %>></td>
             <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_add_user_to_group" /></td>
+        </tr>
+        <tr>
+            <td width="1%" align="center" nowrap><input type="checkbox" name="initialcontactsenabled" <%=(initialContactsEnabled) ? "checked" : "" %>></td>
+            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_initial_contacts" /></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="privacylistenabled" <%=(privacyListEnabled) ? "checked" : "" %>></td>
@@ -620,6 +651,99 @@ function addEmailContact() {
     </div>
     </div>
 </div>
+
+<br>
+
+<div class="jive-contentBoxHeader"><fmt:message key="registration.props.form.initial_contacts" /></div>
+<div class="jive-contentBox">
+    <p><fmt:message key="registration.props.form.initial_contacts_details" /></p>
+
+    <% if (ParamUtils.getBooleanParameter(request, "deleteInitialContactSuccess")) { %>
+
+    <div class="jive-success">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/success-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.initial_contact_removed" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <% } else if (errors.containsKey("missingInitialContact")) { %>
+
+    <div class="jive-error">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/error-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.initial_contact_missing" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <% } else if (ParamUtils.getBooleanParameter(request, "addInitialContactSuccess")) { %>
+
+    <div class="jive-success">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/success-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.initial_contact_added" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <% } %>
+
+    <div>
+        <label for="initialcontactaddtf"><fmt:message key="registration.props.form.initial_contact_add" />:</label>
+        <input type="text" name="contactInitial" size="30" maxlength="100" value="<%= (contactInitial != null ? contactInitial : "") %>" id="initialcontactaddtf"/>
+        <input type="submit" value="<fmt:message key="registration.props.form.registration_add" />" onclick="document.regform.addInitialContact.value = 'true'; document.regform.submit(); return true;"/>
+
+        <br><br>
+
+        <div class="jive-table" style="width:400px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <thead>
+                <tr>
+                    <th width="99%"><fmt:message key="registration.props.form.initial_contact_initial_contact" /></th>
+                    <th width="1%" nowrap><fmt:message key="registration.props.form.initial_contact_remove" /></th>
+                </tr>
+                </thead>
+                <tbody>
+                <% if (plugin.getInitialContacts().size() == 0) { %>
+
+                <tr>
+                    <td width="100%" colspan="2" align="center" nowrap><fmt:message key="registration.props.form.initial_contact_no_contact" /></td>
+                </tr>
+
+                <% } %>
+
+                <% for (String initialContact : plugin.getInitialContacts()) { %>
+
+                <tr>
+                    <td width="99%"><%=initialContact %></td>
+                    <td width="1%" align="center"><a
+                        href="registration-props-form.jsp?deleteInitialContact=true&contactInitial=<%=initialContact %>"
+                        title="Delete Contact?"
+                        onclick="return confirm('Are you sure you want to delete this contact?');"><img
+                        src="images/delete-16x16.gif" width="16" height="16"
+                        border="0"></a>
+                    </td>
+                </tr>
+
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
 </form>
 
 <br>

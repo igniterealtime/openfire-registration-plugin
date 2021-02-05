@@ -34,6 +34,7 @@ import org.jivesoftware.openfire.group.Group;
 import org.jivesoftware.openfire.group.GroupManager;
 import org.jivesoftware.openfire.group.GroupNotFoundException;
 import org.jivesoftware.openfire.lockout.LockOutManager;
+import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.privacy.PrivacyList;
 import org.jivesoftware.openfire.privacy.PrivacyListManager;
@@ -75,7 +76,7 @@ public class RegistrationPlugin implements Plugin {
     
     /**
      * The expected value is a boolean, if true any user who registers will be added to the group 
-     * specified in the property #REGISTRAION_GROUP. The default value is false.
+     * specified in the property #REGISTRATION_GROUP. The default value is false.
      */
     private static final String GROUP_ENABLED = "registration.group.enabled";
     
@@ -91,6 +92,18 @@ public class RegistrationPlugin implements Plugin {
      */
     private static final String WEB_ENABLED = "registration.web.enabled";
     
+    /**
+     * The expected value is a boolean, if true any user who registeres will
+     * have the users listed in INITIAL_CONTACTS added to his/her roster.
+     */
+    private static final String INITIALCONTACTS_ENABLED = "registration.initialcontacts.enabled";
+
+    /**
+     * A comma separated String of usernames that are added to the roster of
+     * each new user when #INITIALCONTACTS_ENABLED is true.
+     */
+    private static final String INITIAL_CONTACTS = "registration.initialcontacts.imContacts";
+
     /**
      * The expected value is a comma separated String of usernames who will receive a instant
      * message when a new user registers if the property #IM_NOTIFICATION_ENABLED is set to true.
@@ -113,7 +126,7 @@ public class RegistrationPlugin implements Plugin {
      * The expected value is a String that contains the name of the group that a new user will 
      * be added to when they register, if the property #GROUP_ENABLED is set to true.
      */
-    private static final String REGISTRAION_GROUP = "registration.group";
+    private static final String REGISTRATION_GROUP = "registration.group";
     
     /**
      * The expected value is a String that contains the XML contents of the default
@@ -150,7 +163,8 @@ public class RegistrationPlugin implements Plugin {
     
     private List<String> imContacts = new ArrayList<String>();
     private List<String> emailContacts = new ArrayList<String>();
-    
+    private List<String> initialContacts = new ArrayList<>();
+
     public RegistrationPlugin() {
         serverName = XMPPServer.getInstance().getServerInfo().getXMPPDomain();
         serverAddress = new JID(serverName);
@@ -166,6 +180,10 @@ public class RegistrationPlugin implements Plugin {
             emailContacts.addAll(Arrays.asList(ecs.split(",")));
         }
                 
+        String accs = JiveGlobals.getProperty(INITIAL_CONTACTS);
+        if (accs != null) {
+            initialContacts.addAll(Arrays.asList(accs.split(",")));
+        }
         UserEventDispatcher.addListener(listener);
         
         //delete properties from version 1.0
@@ -201,6 +219,39 @@ public class RegistrationPlugin implements Plugin {
         return JiveGlobals.getBooleanProperty(EMAIL_NOTIFICATION_ENABLED, false);
     }
     
+    public void setInitialContactsEnabled(boolean enable) {
+        JiveGlobals.setProperty(INITIALCONTACTS_ENABLED, enable ? "true" : "false");
+    }
+
+    public boolean initialContactsEnabled() {
+        return JiveGlobals.getBooleanProperty(INITIALCONTACTS_ENABLED, false);
+    }
+
+    public Collection<String> getInitialContacts() {
+        Log.debug("Returning all initial contacts.");
+        Collections.sort(initialContacts);
+        return initialContacts;
+    }
+
+    public void addInitialContact(String contact) {
+        Log.debug("Adding a new initial contact: {}", contact);
+        if (!initialContacts.contains(contact.trim().toLowerCase())) {
+            initialContacts.add(contact.trim().toLowerCase());
+            JiveGlobals.setProperty(INITIAL_CONTACTS, propPrep(initialContacts));
+        }
+    }
+
+    public void removeInitialContact(String contact) {
+        Log.debug("Removing an initial contact: {}", contact);
+        initialContacts.remove(contact.trim().toLowerCase());
+        if (initialContacts.size() == 0) {
+            JiveGlobals.deleteProperty(INITIAL_CONTACTS);
+        }
+        else {
+            JiveGlobals.setProperty(IM_CONTACTS, propPrep(initialContacts));
+        }
+    }
+
     public Collection<String> getIMContacts() {
         Collections.sort(imContacts);
         return imContacts;
@@ -290,11 +341,11 @@ public class RegistrationPlugin implements Plugin {
     }
     
     public void setGroup(String group) {
-        JiveGlobals.setProperty(REGISTRAION_GROUP, group);
+        JiveGlobals.setProperty(REGISTRATION_GROUP, group);
     }
     
     public String getGroup() {
-        return JiveGlobals.getProperty(REGISTRAION_GROUP);
+        return JiveGlobals.getProperty(REGISTRATION_GROUP);
     }
     
     public void setPrivacyList(String privacyList) {
@@ -358,7 +409,11 @@ public class RegistrationPlugin implements Plugin {
             if (groupEnabled()) {
                 addUserToGroup(user);
             }
-            
+
+            if (initialContactsEnabled()) {
+                addContactToRoster(user);
+            }
+
             if (privacyListEnabled()) {
                 addDefaultPrivacyList(user);
             }
@@ -426,7 +481,22 @@ public class RegistrationPlugin implements Plugin {
                 Log.error(e.getMessage(), e);
             }
         }
-        
+
+        private void addContactToRoster(User user) {
+            Log.debug("registration: Adding all initial contacts to the roster of {}", user);
+
+            RosterItem item;
+            for (String contact : initialContacts) {
+                try {
+                    item = user.getRoster().createRosterItem(new JID(contact), false, true);
+                    item.setSubStatus(RosterItem.SUB_TO);
+                    user.getRoster().updateRosterItem(item);
+                } catch (Exception e) {
+                    Log.error("An exception occurred while trying to add '{}' as an initial contact to the roster of new user '{}'.", new Object[]{contact, user}, e);
+                }
+            }
+        }
+
         private void addDefaultPrivacyList(User user) {
             
             if (Log.isDebugEnabled()) {
