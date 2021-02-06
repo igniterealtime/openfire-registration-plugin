@@ -25,6 +25,7 @@
 <%@ page import="org.xmpp.packet.JID" %>
 <%@ page import="org.jivesoftware.openfire.lockout.LockOutManager" %>
 <%@ page import="java.net.URLEncoder" %>
+<%@ page import="org.jivesoftware.openfire.plugin.ReCaptchaUtil" %>
 
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
@@ -42,11 +43,12 @@
     boolean welcomeEnabled = ParamUtils.getBooleanParameter(request, "welcomeenabled", false);
     boolean groupEnabled = ParamUtils.getBooleanParameter(request, "groupenabled", false);
     boolean webEnabled = ParamUtils.getBooleanParameter(request, "webenabled", false);
+	boolean initialContactsEnabled = ParamUtils.getBooleanParameter(request, "initialcontactsenabled", false);
 
     boolean reCaptchaEnabled = ParamUtils.getBooleanParameter(request, "recaptcha", false);
-    boolean reCaptchaNoScript = ParamUtils.getBooleanParameter(request, "recaptchanoscript", false);
-    String reCaptchaPublicKey = ParamUtils.getParameter(request, "recaptchapublickey");
-    String reCaptchaPrivateKey = ParamUtils.getParameter(request, "recaptchaprivatekey");
+    double reCaptchaMinimalScore = ParamUtils.getDoubleParameter(request, "recaptchaminimalscore", ReCaptchaUtil.getReCaptchaMinimalScore());
+    String reCaptchaSiteKey = ParamUtils.getParameter(request, "recaptchasitekey");
+    String reCaptchaSecretKey = ParamUtils.getParameter(request, "recaptchasecretkey");
 
     long autoExpiry = ParamUtils.getLongParameter( request, "autoexpiry", -1 );
     String autoExpiryCustom = ParamUtils.getParameter( request, "autoexpiry_custom" );
@@ -58,6 +60,10 @@
     String contactEmail = ParamUtils.getParameter(request, "contactEmail");
     boolean addEmail = ParamUtils.getBooleanParameter(request, "addEmail");
     boolean deleteEmail = ParamUtils.getBooleanParameter(request, "deleteEmail");
+
+    String contactInitial = ParamUtils.getParameter(request, "contactInitial");
+    boolean addInitialContact = ParamUtils.getBooleanParameter(request, "addInitialContact");
+    boolean deleteInitialContact = ParamUtils.getBooleanParameter(request, "deleteInitialContact");
 
     String welcomeMessage = ParamUtils.getParameter(request, "welcomemessage");
     String group = ParamUtils.getParameter(request, "groupname");
@@ -125,16 +131,36 @@
         response.sendRedirect("registration-props-form.jsp?deleteSuccess=true");
         return;
     }
-    
+
+    if (addInitialContact) {
+		if (contactInitial == null || contactInitial.trim().equals("")) {
+            errors.put("missingInitialContact", "missingInitialContact");
+        }
+        else {
+            contactInitial = contactInitial.trim().toLowerCase();
+            plugin.addInitialContact(contactInitial);
+            response.sendRedirect("registration-props-form.jsp?addInitialContactSuccess=true");
+            return;
+        }
+    }
+
+    if (deleteInitialContact) {
+        plugin.removeInitialContact(contactInitial);
+        response.sendRedirect("registration-props-form.jsp?deleteInitialContactSuccess=true");
+        return;
+    }
+
     if (save) {
         plugin.setIMNotificationEnabled(imEnabled);
         plugin.setEmailNotificationEnabled(emailEnabled);
         plugin.setWelcomeEnabled(welcomeEnabled);
         plugin.setWebEnabled(webEnabled);
-        plugin.setReCaptchaEnabled(reCaptchaEnabled);
-        plugin.setReCaptchaNoScript(reCaptchaNoScript);
-        plugin.setReCaptchaPublicKey(reCaptchaPublicKey);
-        plugin.setReCaptchaPrivateKey(reCaptchaPrivateKey);
+        plugin.setInitialContactsEnabled(initialContactsEnabled);
+
+        ReCaptchaUtil.setReCaptchaEnabled(reCaptchaEnabled);
+        ReCaptchaUtil.setReCaptchaMinimalScore(reCaptchaMinimalScore);
+        ReCaptchaUtil.setReCaptchaSiteKey(reCaptchaSiteKey);
+        ReCaptchaUtil.setReCaptchaSecretKey(reCaptchaSecretKey);
         plugin.setPrivacyListEnabled(privacyListEnabled);
 
         if (autoExpiry == -2 )
@@ -234,6 +260,7 @@
     welcomeEnabled = plugin.welcomeEnabled();
     groupEnabled = plugin.groupEnabled();
     webEnabled = plugin.webEnabled();
+    initialContactsEnabled = plugin.initialContactsEnabled();
     privacyListEnabled = plugin.privacyListEnabled();
     
     welcomeMessage = plugin.getWelcomeMessage();
@@ -241,15 +268,16 @@
     header = plugin.getHeader();
     privacyListName = plugin.getPrivacyListName();
     privacyList = plugin.getPrivacyList();
-    reCaptchaEnabled = plugin.reCaptchaEnabled();
-    reCaptchaNoScript = plugin.reCaptchaNoScript();
-    reCaptchaPublicKey = plugin.getReCaptchaPublicKey();
-    reCaptchaPrivateKey = plugin.getReCaptchaPrivateKey();
+    reCaptchaEnabled = ReCaptchaUtil.reCaptchaEnabled();
+    reCaptchaMinimalScore = ReCaptchaUtil.getReCaptchaMinimalScore();
+    reCaptchaSiteKey = ReCaptchaUtil.getReCaptchaSiteKey();
+    reCaptchaSecretKey = ReCaptchaUtil.getReCaptchaSecretKey();
     autoExpiry = plugin.getAutomaticAccountLockoutAfter();
 
     pageContext.setAttribute("webRegistrationAddress", plugin.webRegistrationAddress());
-    pageContext.setAttribute("reCaptchaPublicKey", reCaptchaPublicKey);
-    pageContext.setAttribute("reCaptchaPrivateKey", reCaptchaPrivateKey);
+    pageContext.setAttribute("reCaptchaSiteKey", reCaptchaSiteKey);
+    pageContext.setAttribute("reCaptchaSecretKey", reCaptchaSecretKey);
+    pageContext.setAttribute("reCaptchaMinimalScore", reCaptchaMinimalScore);
     pageContext.setAttribute("contactEmail", contactEmail);
     pageContext.setAttribute("welcomeMessage", welcomeMessage);
     pageContext.setAttribute("group", group);
@@ -262,26 +290,27 @@
     <head>
         <title><fmt:message key="registration.props.form.title" /></title>
         <meta name="pageID" content="registration-props-form"/>
+
+        <script>
+            function addIMContact() {
+                document.regform.addIM.value = 'true';
+                document.regform.submit();
+            }
+
+            function addEmailContact() {
+                document.regform.addEmail.value = 'true';
+                document.regform.submit();
+            }
+        </script>
     </head>
     <body>
-
-<script language="JavaScript" type="text/javascript">
-function addIMContact() {
-    document.regform.addIM.value = 'true';
-    document.regform.submit();
-}
-
-function addEmailContact() {
-    document.regform.addEmail.value = 'true';
-    document.regform.submit();
-}
-</script>
 
 <p><fmt:message key="registration.props.form.details" /></p>
 
 <form action="registration-props-form.jsp?save" name="regform" method="post">
 <input type="hidden" name="addIM" value="">
 <input type="hidden" name="addEmail" value="">
+<input type="hidden" name="addInitialContact" value="">
 
 <div class="jive-contentBoxHeader"><fmt:message key="registration.props.form.registration_settings" /></div>
 <div class="jive-contentBox">
@@ -332,6 +361,20 @@ function addEmailContact() {
 
     <% } %>
 
+    <% if (reCaptchaEnabled && (reCaptchaSiteKey == null || reCaptchaSiteKey.isEmpty() || reCaptchaSecretKey == null || reCaptchaSecretKey.isEmpty()) ) { %>
+    <div class="jive-warning">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/warning-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.incomplete-recaptcha" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <% } %>
+
+
     <table cellpadding="3" cellspacing="0" border="0" width="100%">
     <tbody>
         <tr>
@@ -351,30 +394,50 @@ function addEmailContact() {
             <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_add_user_to_group" /></td>
         </tr>
         <tr>
+            <td width="1%" align="center" nowrap><input type="checkbox" name="initialcontactsenabled" <%=(initialContactsEnabled) ? "checked" : "" %>></td>
+            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_initial_contacts" /></td>
+        </tr>
+        <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="privacylistenabled" <%=(privacyListEnabled) ? "checked" : "" %>></td>
             <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_default_privacy_list" /></td>
         </tr>
+
+        <tr>
+            <td width="100%" colspan="3">&nbsp;</td>
+        </tr>
+        <tr>
+            <td width="100%" align="left" colspan="3"><fmt:message key="registration.props.form.self-registration" /></td>
+        </tr>
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="webenabled" <%=(webEnabled) ? "checked" : "" %>></td>
-            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_web_registration" /> <c:out value="${webRegistrationAddress}"/></td>
+            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_web_registration" /> <a href="<c:out value="${webRegistrationAddress}"/>" target="_blank"><c:out value="${webRegistrationAddress}"/></a></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap><input type="checkbox" name="recaptcha" <%=(reCaptchaEnabled) ? "checked" : "" %>></td>
-            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_recaptcha" /> <c:out value="${webRegistrationAddress}"/></td>
-        </tr>
-        <tr>
-            <td width="1%" align="center" nowrap><input type="checkbox" name="recaptchanoscript" <%=(reCaptchaNoScript) ? "checked" : "" %>></td>
-            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.recaptcha_noscript" /></td>
+            <td width="99%" align="left" colspan="2"><fmt:message key="registration.props.form.enable_recaptcha" /></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap>&nbsp;</td>
-            <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_public_key" /></td>
-            <td width="75%" align="left"><input type="text" name="recaptchapublickey" size="40" maxlength="100" value="${fn:escapeXml(reCaptchaPublicKey)}"/></td>
+            <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_minimal_score" /></td>
+            <td width="75%" align="left"><input type="text" name="recaptchaminimalscore" size="10" maxlength="10" value="${fn:escapeXml(reCaptchaMinimalScore)}"/></td>
         </tr>
         <tr>
             <td width="1%" align="center" nowrap>&nbsp;</td>
-            <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_private_key" /></td>
-            <td width="75%" align="left"><input type="text" name="recaptchaprivatekey" size="40" maxlength="100" value="${fn:escapeXml(reCaptchaPrivateKey)}"/></td>
+            <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_site_key" /></td>
+            <td width="75%" align="left"><input type="text" name="recaptchasitekey" size="40" maxlength="100" value="${fn:escapeXml(reCaptchaSiteKey)}"/>
+                <% if (reCaptchaEnabled && (reCaptchaSiteKey == null || reCaptchaSiteKey.isEmpty())) {%>
+                <img src="images/warning-16x16.gif" width="16" height="16" border="0">
+                <% } %>
+            </td>
+        </tr>
+        <tr>
+            <td width="1%" align="center" nowrap>&nbsp;</td>
+            <td width="24%" align="left"><fmt:message key="registration.props.form.recaptcha_secret_key" /></td>
+            <td width="75%" align="left"><input type="text" name="recaptchasecretkey" size="40" maxlength="100" value="${fn:escapeXml(reCaptchaSecretKey)}"/>
+                <% if (reCaptchaEnabled && (reCaptchaSecretKey == null || reCaptchaSecretKey.isEmpty())) {%>
+                <img src="images/warning-16x16.gif" width="16" height="16" border="0">
+                <% } %>
+            </td>
         </tr>
 
         <% if ( LockOutManager.getLockOutProvider().isDelayedStartSupported()) { %>
@@ -588,6 +651,99 @@ function addEmailContact() {
     </div>
     </div>
 </div>
+
+<br>
+
+<div class="jive-contentBoxHeader"><fmt:message key="registration.props.form.initial_contacts" /></div>
+<div class="jive-contentBox">
+    <p><fmt:message key="registration.props.form.initial_contacts_details" /></p>
+
+    <% if (ParamUtils.getBooleanParameter(request, "deleteInitialContactSuccess")) { %>
+
+    <div class="jive-success">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/success-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.initial_contact_removed" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <% } else if (errors.containsKey("missingInitialContact")) { %>
+
+    <div class="jive-error">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/error-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.initial_contact_missing" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <% } else if (ParamUtils.getBooleanParameter(request, "addInitialContactSuccess")) { %>
+
+    <div class="jive-success">
+        <table cellpadding="0" cellspacing="0" border="0">
+            <tbody>
+            <tr>
+                <td class="jive-icon"><img src="images/success-16x16.gif" width="16" height="16" border="0"></td>
+                <td class="jive-icon-label"><fmt:message key="registration.props.form.initial_contact_added" /></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <% } %>
+
+    <div>
+        <label for="initialcontactaddtf"><fmt:message key="registration.props.form.initial_contact_add" />:</label>
+        <input type="text" name="contactInitial" size="30" maxlength="100" value="<%= (contactInitial != null ? contactInitial : "") %>" id="initialcontactaddtf"/>
+        <input type="submit" value="<fmt:message key="registration.props.form.registration_add" />" onclick="document.regform.addInitialContact.value = 'true'; document.regform.submit(); return true;"/>
+
+        <br><br>
+
+        <div class="jive-table" style="width:400px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <thead>
+                <tr>
+                    <th width="99%"><fmt:message key="registration.props.form.initial_contact_initial_contact" /></th>
+                    <th width="1%" nowrap><fmt:message key="registration.props.form.initial_contact_remove" /></th>
+                </tr>
+                </thead>
+                <tbody>
+                <% if (plugin.getInitialContacts().size() == 0) { %>
+
+                <tr>
+                    <td width="100%" colspan="2" align="center" nowrap><fmt:message key="registration.props.form.initial_contact_no_contact" /></td>
+                </tr>
+
+                <% } %>
+
+                <% for (String initialContact : plugin.getInitialContacts()) { %>
+
+                <tr>
+                    <td width="99%"><%=initialContact %></td>
+                    <td width="1%" align="center"><a
+                        href="registration-props-form.jsp?deleteInitialContact=true&contactInitial=<%=initialContact %>"
+                        title="Delete Contact?"
+                        onclick="return confirm('Are you sure you want to delete this contact?');"><img
+                        src="images/delete-16x16.gif" width="16" height="16"
+                        border="0"></a>
+                    </td>
+                </tr>
+
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
 </form>
 
 <br>

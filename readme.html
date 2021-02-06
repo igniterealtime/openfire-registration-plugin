@@ -65,6 +65,7 @@ after the registration plugin has been deployed all of its features are disabled
 of the plugin select the checkbox next to the feature and then click on the "Save Settings" button. 
 The registration plugin has various items that can be configured:
 </p>
+<ul>
 <li>Account expiry - Disables new accounts after a certain amount of time has passed.</li>
 <li>Registration Notification - Contacts can be configured to receive an instant message and/or email to 
 notify them whenever a new user registers.</li>
@@ -72,9 +73,31 @@ notify them whenever a new user registers.</li>
 <li>Default Group - A group that all users will be added to when they first register.</li>
 <li>Web Page Registration - Allows users to create accounts via a web page.</li>
 <li>Default Privacy List - A privacy list added and set as default for all users when they register.</li>
+</ul>
+
+<h2>Public web registration form</h2>
+<p>
+The plugin can make available a public web page that can be used by your users to register new accounts. Optionally,
+Google's reCAPTCHA v3 verification service can be used to protect against abuse of this service.
+</p>
+<p>
+To enable the reCAPTCHA verification, you should follow the instructions provided by Google, at
+<a href="https://www.google.com/recaptcha/" target="_blank">https://www.google.com/recaptcha/</a>. At the moment of
+writing, the process to sign up for the service is:
+</p>
+<ol>
+<li>Open the reCAPTCHA Admin Console</li>
+<li>Create a new site</li>
+<li>Select as type: v3</li>
+<li>Fill out the domain name on which the public signup page will be accessible</li>
+<li>Copy the 'site key' and 'secret key', and save this in the Openfire Admin Console</li>
+</ol>
+<p>
+It is advisable to manually test the sign-up page afterwards, by creating a new user.
+</p>
 
 <h2>Default Privacy List</h2>
-<p>The format used is an XML that should look like :
+<p>The format used is an XML that should look like :</p>
 <pre><code>&lt;list&gt;
 &lt;item action="deny" order="100" type="subscription" value="none"&gt;
      &lt;message/&gt;
@@ -83,9 +106,9 @@ notify them whenever a new user registers.</li>
 &lt;/item&gt;
 &lt;/list&gt;
 </code></pre>
+<p>
 The enclosing list tag is needed, but none of its attributes are read. Inside it you can have multiple items.
 </p>
-</li>
 
 <h2>Using the Plugin</h2>
 <p>
