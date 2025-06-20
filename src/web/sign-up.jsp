@@ -1,5 +1,5 @@
 <%--
-  - Copyright (C) 2005-2008 Jive Software. All rights reserved.
+  - Copyright (C) 2005-2008 Jive Software, 2025 Ignite Realtime Foundation. All rights reserved.
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@
     String passwordConfirm = ParamUtils.getParameter(request,"passwordConfirm");
     String recaptchaResponse = ParamUtils.getParameter(request,"g-recaptcha-response");
 
-    RegistrationPlugin plugin = (RegistrationPlugin) webManager.getXMPPServer().getPluginManager().getPlugin("registration");
+    RegistrationPlugin plugin = (RegistrationPlugin) webManager.getXMPPServer().getPluginManager().getPluginByName("Registration").orElseThrow();
 
     // Handle a request to create a user:
     if (create) {
