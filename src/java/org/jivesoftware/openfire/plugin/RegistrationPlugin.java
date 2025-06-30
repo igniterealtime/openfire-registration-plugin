@@ -121,6 +121,18 @@ public class RegistrationPlugin implements Plugin {
      * when they register, if the property #WELCOME_ENABLED is set to true.
      */
     private static final String WELCOME_MSG = "registration.welcome.message";
+
+    /**
+     * The expected value is a String that contains the raw XMPP message that will be sent to a new user
+     * when they register, if the property #WELCOME_ENABLED is set to true.
+     */
+    private static final String WELCOME_RAW_MSG = "registration.welcome.message.raw";
+
+    /**
+     * The expected value is a String that contains the JID of the account sending the
+     * welcome message. Defaults to the server itself
+     */
+    private static final String WELCOME_MSG_FROM = "registration.welcome.message.from";
     
     /**
      * The expected value is a String that contains the name of the group that a new user will 
@@ -152,6 +164,8 @@ public class RegistrationPlugin implements Plugin {
      * of the sign-up.jsp, if the property #WEB_ENABLED is set to true.
      */
     private static final String HEADER = "registration.header";
+
+    private static final Logger LOG = LoggerFactory.getLogger(RegistrationPlugin.class);
 
     private RegistrationUserEventListener listener = new RegistrationUserEventListener();
     
@@ -308,8 +322,24 @@ public class RegistrationPlugin implements Plugin {
         JiveGlobals.setProperty(WELCOME_MSG, message);
     }
 
+    public void setWelcomeRawMessage(String message) {
+        JiveGlobals.setProperty(WELCOME_RAW_MSG, message);
+    }
+
+    public void setWelcomeMessageFrom(String from) {
+        JiveGlobals.setProperty(WELCOME_MSG_FROM, from);
+    }
+
     public String getWelcomeMessage() {
         return JiveGlobals.getProperty(WELCOME_MSG, "Welcome to Openfire!");
+    }
+
+    public String getWelcomeRawMessage() {
+        return JiveGlobals.getProperty(WELCOME_RAW_MSG);
+    }
+
+    public String getWelcomeMessageFrom() {
+        return JiveGlobals.getProperty(WELCOME_MSG_FROM);
     }
     
     public void setGroupEnabled(boolean enable) {
@@ -403,7 +433,12 @@ public class RegistrationPlugin implements Plugin {
             }
             
             if (welcomeEnabled()) {
-                sendWelcomeMessage(user);
+                try {
+                    sendWelcomeMessage(user);
+                } catch (DocumentException e) {
+                    Log.error("Unable to convert welcome text into Message");
+                    e.printStackTrace();
+                }
             }
             
             if (groupEnabled()) {
@@ -455,9 +490,16 @@ public class RegistrationPlugin implements Plugin {
            }
         }
 
-        private void sendWelcomeMessage(User user) {
-            router.route(createServerMessage(user.getUsername() + "@" + serverName, "Welcome",
-                    getWelcomeMessage()));
+        private void sendWelcomeMessage(User user) throws DocumentException {
+            String rawWelcomeMessage = getWelcomeRawMessage();
+            List<Message> welcomeMessages = new ArrayList();
+            String to = user.getUsername() + "@" + serverName;
+            if (rawWelcomeMessage != null && !rawWelcomeMessage.isEmpty()) {
+                welcomeMessages = createServerMessage(to, rawWelcomeMessage);
+            } else {
+                welcomeMessages.add(createServerMessage(to, "Welcome", getWelcomeMessage()));
+            }
+            welcomeMessages.forEach(router::route);
         }
         
         private Message createServerMessage(String to, String subject, String body) {
@@ -468,6 +510,30 @@ public class RegistrationPlugin implements Plugin {
                 message.setSubject(subject);
             }
             message.setBody(body);
+            return message;
+        }
+
+        private List<Message> createServerMessage(String to, String rawMessage) throws DocumentException {
+            Document document = DocumentHelper.parseText(rawMessage);
+            // It could be a single message or an array of messages
+            // An array of messages has "messages" as a root element
+            List<Message> messages = new ArrayList();
+            JID from = getWelcomeMessageFrom() != null ? new JID(getWelcomeMessageFrom()) : serverAddress;
+            if (document.getRootElement().getName().equals("messages")) {
+                for (Iterator i = document.getRootElement().elementIterator(); i.hasNext();) {
+                    Element element = (Element) i.next();
+                    messages.add(messageFromElement(element, to, from));
+                }
+            } else {
+                messages.add(messageFromElement(document.getRootElement(), to, from));
+            }
+            return messages;
+        }
+
+        private Message messageFromElement(Element element, String to, JID from) {
+            Message message = new Message(element);
+            message.setTo(to);
+            message.setFrom(from);
             return message;
         }
         
